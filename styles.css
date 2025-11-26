@@ -1,0 +1,59 @@
+body {
+    background-color: #f2f7ff;
+    padding-bottom: 40px;
+}
+
+.card {
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    padding: 18px;
+}
+
+.page-section {
+    display: block;
+}
+
+.result-box {
+    background: #1e293b;
+    color: #dbeafe;
+    padding: 15px;
+    border-radius: 8px;
+    min-height: 80px;
+    font-family: monospace;
+    white-space: pre-line;
+    font-size: 15px;
+}
+
+.symptom {
+    margin-right: 6px;
+}
+
+label {
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+    .card {
+        padding: 15px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .result-box {
+        font-size: 14px;
+    }
+
+    .navbar-brand {
+        font-size: 18px;
+    }
+}
+
+.login-img {
+    max-width: 180px;
+    width: 100%;
+}
