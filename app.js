@@ -18,156 +18,140 @@ function showPage(page) {
   });
 }
 
+
+
+// --- TU CÓDIGO DE LÓGICA (SISTEMA EXPERTO) ---
 function diagnosticar() {
   const checks = Array.from(document.querySelectorAll(".symptom"));
   const seleccionados = checks.filter((ch) => ch.checked).map((ch) => ch.value);
   const salidaElem = document.getElementById("diagnostico-res");
 
   if (seleccionados.length === 0) {
-    Swal.fire({
-      icon: "warning",
-      title: "Falta información",
-      text: "Selecciona al menos un síntoma para diagnosticar.",
-      timer: 3000,
-      showConfirmButton: false,
-    });
-
-    return;
+      Swal.fire({
+          icon: "warning",
+          title: "Falta información",
+          text: "Selecciona al menos un síntoma para diagnosticar.",
+          timer: 3000,
+          showConfirmButton: false,
+      });
+      return;
   }
 
+  // Base de Conocimientos (Reglas)
   const reglas = {
-    no_enciende: "Revisar fuente de poder.",
-    ventilador_no_gira: "Posible falla en tarjeta madre o 12V del ventilador.",
-    so_no_carga: "Verificar disco duro y sector de arranque.",
-    reinicia: "Revisar temperatura del CPU y eventos de energía.",
-    temp_alta:
-      "Limpiar ventilador y aplicar pasta térmica; verificar flujo de aire.",
-    sin_senal: "Revisar conexión de video (HDMI/DP/VGA) y tarjeta de video.",
-    tarjeta_video_floja:
-      "Ajustar tarjeta de video en la ranura y comprobar alimentación adicional.",
-    disco_ruido: "Recomendado: respaldo inmediato y reemplazo del disco.",
-    no_red: "Verificar configuración de IP y conexión física.",
-    ip_correcta: "IP correcta. Si no hay conexión, revisar switch o router.",
+      no_enciende: "Revisar fuente de poder y cables de alimentación.",
+      ventilador_no_gira: "Posible falla en tarjeta madre o conector de 12V del ventilador.",
+      so_no_carga: "Verificar integridad del disco duro y sector de arranque (MBR/GPT).",
+      reinicia: "Revisar temperatura del CPU y visor de eventos de energía (Kernel-Power).",
+      temp_alta: "Limpiar disipador, verificar flujo de aire y cambiar pasta térmica.",
+      sin_senal: "Revisar conexión de video (HDMI/DP) y asentar tarjeta gráfica.",
+      tarjeta_video_floja: "Ajustar tarjeta de video en slot PCIe y verificar alimentación auxiliar.",
+      disco_ruido: "CRÍTICO: Posible falla mecánica. Realizar respaldo inmediato y reemplazar disco.",
+      no_red: "Verificar cable Ethernet, switch y configuración de adaptador.",
+      ip_correcta: "IP válida detectada. Si no hay internet, el problema está en la puerta de enlace (Router) o DNS.",
   };
 
+  // Reglas Derivadas (Inferencia de segundo nivel)
   const derivadas = {
-    reinicia:
-      "Si la temperatura es alta → limpiar ventilador y aplicar pasta térmica.",
-    temp_alta:
-      "Después de limpiar/verificar temperatura, comprobar que el equipo no se reinicie.",
-    no_red:
-      "Si la IP está correcta y sigue sin conexión → revisar switch o router.",
-    ip_correcta: "Si IP correcta y sin conexión → revisar switch/router.",
+      reinicia: "Si la temperatura también es alta → El reinicio es por protección térmica (Thermal Throttling).",
+      temp_alta: "Post-mantenimiento: Verificar curvas de ventilación en BIOS.",
+      no_red: "Si la IP es correcta pero no navega → Verificar reglas de Firewall o bloqueo de MAC en Router.",
+      ip_correcta: "Si IP es correcta y hay 'no_red' → Fallo lógico en Router o ISP.",
   };
 
   const categorias = {
-    energia: ["no_enciende", "ventilador_no_gira"],
-    arranque: ["so_no_carga", "disco_ruido"],
-    temperatura: ["reinicia", "temp_alta"],
-    video: ["sin_senal", "tarjeta_video_floja"],
-    red: ["no_red", "ip_correcta"],
+      energia: ["no_enciende", "ventilador_no_gira"],
+      arranque: ["so_no_carga", "disco_ruido"],
+      temperatura: ["reinicia", "temp_alta"],
+      video: ["sin_senal", "tarjeta_video_floja"],
+      red: ["no_red", "ip_correcta"],
   };
 
   const resultadosPorCategoria = {
-    energia: [],
-    arranque: [],
-    temperatura: [],
-    video: [],
-    red: [],
+      energia: [],
+      arranque: [],
+      temperatura: [],
+      video: [],
+      red: [],
   };
 
+  // Motor de Inferencia
   seleccionados.forEach((h) => {
-    if (reglas[h]) {
-      for (const cat in categorias) {
-        if (categorias[cat].includes(h)) {
-          resultadosPorCategoria[cat].push({ hecho: h, accion: reglas[h] });
-          if (derivadas[h])
-            resultadosPorCategoria[cat].push({
-              hecho: `${h}_der`,
-              accion: derivadas[h],
-            });
-        }
+      if (reglas[h]) {
+          for (const cat in categorias) {
+              if (categorias[cat].includes(h)) {
+                  resultadosPorCategoria[cat].push({ hecho: h, accion: reglas[h] });
+                  if (derivadas[h]) {
+                      resultadosPorCategoria[cat].push({
+                          hecho: `${h}_der`,
+                          accion: `↳ NOTA: ${derivadas[h]}`,
+                      });
+                  }
+              }
+          }
       }
-    }
   });
 
   let salida = [];
 
   const hechosTotales = Object.keys(reglas).length;
   if (seleccionados.length === hechosTotales) {
-    salida.push(
-      "Se detectaron múltiples fallas. Acciones recomendadas en orden por categoría:\n"
-    );
-    Swal.fire({
-      icon: "info",
-      title: "Múltiples fallas detectadas",
-      text: "Se han seleccionado todos los síntomas. Se mostrarán acciones agrupadas.",
-      timer: 3000,
-      showConfirmButton: false,
-    });
+      salida.push("⚠️ SE DETECTARON FALLAS SISTÉMICAS MÚLTIPLES ⚠️\n");
+      Swal.fire({
+          icon: "error",
+          title: "Sistema Crítico",
+          text: "Se han marcado todos los síntomas. El equipo requiere revisión mayor.",
+      });
   }
 
-  const ordenCategorias = [
-    "energia",
-    "arranque",
-    "temperatura",
-    "video",
-    "red",
-  ];
+  const ordenCategorias = ["energia", "arranque", "temperatura", "video", "red"];
+  
   ordenCategorias.forEach((cat) => {
-    const items = resultadosPorCategoria[cat];
-    if (items.length > 0) {
-      const titulo = {
-        energia: "Problemas de energía / hardware",
-        arranque: "Problemas de arranque / disco",
-        temperatura: "Problemas térmicos",
-        video: "Problemas de video",
-        red: "Problemas de red",
-      }[cat];
+      const items = resultadosPorCategoria[cat];
+      if (items.length > 0) {
+          const titulo = {
+              energia: " Problemas de Energía / Hardware",
+              arranque: "Problemas de Arranque / Almacenamiento",
+              temperatura: "Problemas Térmicos",
+              video: "Problemas de Video / GPU",
+              red: "Problemas de Red / Conectividad",
+          }[cat];
 
-      salida.push(`== ${titulo} ==`);
-      const mostrados = new Set();
-      items.forEach((it) => {
-        if (!mostrados.has(it.accion)) {
-          salida.push(`- ${it.accion}`);
-          mostrados.add(it.accion);
-        }
-      });
-      salida.push("");
-    }
+          salida.push(titulo);
+          salida.push("------------------------------------------------");
+          const mostrados = new Set();
+          items.forEach((it) => {
+              if (!mostrados.has(it.accion)) {
+                  salida.push(`• ${it.accion}`);
+                  mostrados.add(it.accion);
+              }
+          });
+          salida.push(""); // Espacio
+      }
   });
 
+  // Reglas de conflicto / Independientes
   const independientes = [];
-  if (
-    seleccionados.includes("no_enciende") &&
-    seleccionados.includes("no_red")
-  ) {
-    independientes.push(
-      "Se detectan problemas independientes: energía y red. Trátalos por separado."
-    );
+  if (seleccionados.includes("no_enciende") && seleccionados.includes("no_red")) {
+      independientes.push("• Paradoja: Si no enciende, la falla de red es irrelevante por ahora.");
   }
-  if (
-    seleccionados.includes("disco_ruido") &&
-    seleccionados.includes("no_enciende")
-  ) {
-    independientes.push(
-      "Posible falla mecánica del disco (respaldar) y problemas de inicio (fuente/placa)."
-    );
+  if (seleccionados.includes("disco_ruido") && seleccionados.includes("no_enciende")) {
+      independientes.push("• Prioridad: Revisar encendido primero. El ruido de disco puede ser secundario.");
   }
+  
   if (independientes.length > 0) {
-    Swal.fire({
-      icon: "info",
-      title: "Fallas independientes detectadas",
-      text: independientes.join(" "),
-      timer: 3000,
-      showConfirmButton: false,
-    });
+      salida.push("💡 OBSERVACIONES LÓGICAS:");
+      salida.push(independientes.join("\n"));
+      Swal.fire({
+          icon: "info",
+          title: "Observación Lógica",
+          text: "Existen contradicciones o dependencias en los síntomas seleccionados.",
+          timer: 4000
+      });
   }
 
   if (salida.length === 0) {
-    salida.push(
-      "No se encontraron reglas aplicables a los síntomas seleccionados."
-    );
+      salida.push("No se encontraron reglas aplicables a los síntomas seleccionados.");
   }
 
   salidaElem.textContent = salida.join("\n");
@@ -178,92 +162,127 @@ function resetExpert() {
   const salidaElem = document.getElementById("diagnostico-res");
   if (salidaElem) salidaElem.textContent = "Esperando datos...";
   Swal.fire({
-    icon: "success",
-    title: "Estado reiniciado",
-    text: "Puedes comenzar una nueva evaluación.",
-    timer: 3000,
-    showConfirmButton: false,
+      icon: "success",
+      title: "Diagnóstico Reiniciado",
+      text: "El sistema está listo para una nueva evaluación.",
+      timer: 1500,
+      showConfirmButton: false,
   });
 }
 
 function simularConflicto() {
-  const res = document.getElementById("conflicto-res");
+  const res = document.getElementById("resultado-conflictos");
   if (!res) return console.warn("Elemento conflicto-res no encontrado");
 
-  const hechos = {
-    clienteEntra: true,
-    telefonoSuena: true,
-    correoUrgente: true,
-    impresoraErrorPapel: true,
+  // 1. Hacemos visible el contenedor y limpiamos
+  res.classList.remove("d-none");
+  res.innerHTML = ""; // Limpiar contenido previo
+
+  // 2. Definir Prioridades y Colores para el diseño
+  const getBadgeColor = (prio) => {
+    if (prio === 3) return "bg-danger"; // Alta
+    if (prio === 2) return "bg-warning text-dark"; // Media
+    return "bg-info text-dark"; // Baja
   };
 
+  // 3. ESTRUCTURA INICIAL (Escenario y Hechos)
+  // Usamos HTML real en lugar de solo texto
+  let htmlInicial = `
+      <div class="mb-4">
+          <h5 class="fw-bold text-primary"><i class="bi bi-router"></i> Escenario: Configuración Router Doméstico</h5>
+          <div class="card bg-light border-0 p-3 mt-2">
+              <h6 class="fw-bold text-secondary">Hechos detectados por los sensores:</h6>
+              <ul class="list-group list-group-flush bg-transparent">
+                  <li class="list-group-item bg-transparent py-1"><i class="bi bi-check-circle-fill text-success"></i> Contraseña de fábrica: <strong>DETECTADA</strong></li>
+                  <li class="list-group-item bg-transparent py-1"><i class="bi bi-check-circle-fill text-success"></i> Acceso al panel: <strong>REALIZADO</strong></li>
+                  <li class="list-group-item bg-transparent py-1"><i class="bi bi-check-circle-fill text-success"></i> Conectividad LAN: <strong>ACTIVA</strong></li>
+                  <li class="list-group-item bg-transparent py-1"><i class="bi bi-x-circle-fill text-danger"></i> DHCP: <strong>DESHABILITADO</strong></li>
+                  <li class="list-group-item bg-transparent py-1"><i class="bi bi-exclamation-triangle-fill text-warning"></i> Firmware: <strong>DESACTUALIZADO</strong></li>
+              </ul>
+          </div>
+          <hr>
+          <h6 class="mt-3 fw-bold"><i class="bi bi-cpu"></i> Motor de Inferencia (Log de Ejecución):</h6>
+          <div id="log-container" class="border rounded p-3 bg-white" style="max-height: 300px; overflow-y: auto;">
+             <p class="text-muted fst-italic small">Iniciando evaluación de reglas...</p>
+          </div>
+      </div>
+  `;
+  
+  res.innerHTML = htmlInicial;
+  const logContainer = document.getElementById("log-container");
+
+  // --- DATOS DE REGLAS ---
   const reglas = [
     {
-      id: 1,
-      prioridad: 1,
-      descripcion:
-        "SI un cliente entra a la oficina → Atender al cliente personalmente.",
-      accion: "Atender al cliente personalmente",
+      id: 1, prioridad: 3,
+      descripcion: "Router con pass default → Cambiar contraseña",
+      accion: "Cambiar contraseña por una segura"
     },
     {
-      id: 2,
-      prioridad: 2,
-      descripcion: "SI el teléfono suena → Contestar la llamada.",
-      accion: "Contestar la llamada",
+      id: 2, prioridad: 2,
+      descripcion: "Acceso al panel detectado → Configurar IP",
+      accion: "Configurar IP LAN en el panel"
     },
     {
-      id: 3,
-      prioridad: 2,
-      descripcion:
-        "SI llega un correo urgente → Revisar el correo electrónico.",
-      accion: "Revisar correo urgente",
+      id: 3, prioridad: 1,
+      descripcion: "Hay conectividad LAN → Checar firmware",
+      accion: "Verificar y actualizar firmware"
     },
     {
-      id: 4,
-      prioridad: 3,
-      descripcion:
-        "SI la impresora marca error de papel → Revisar la bandeja de papel.",
-      accion: "Revisar bandeja de papel",
+      id: 4, prioridad: 2,
+      descripcion: "DHCP apagado → Habilitar DHCP",
+      accion: "Habilitar DHCP"
     },
+    // Nota: Agregué la regla 4 que estaba en tu lógica pero no en tu visualización anterior
   ];
 
+  // Hechos simulados (para activar reglas)
+  const hechos = { contrasenaDefault: true, accesoPanel: true, conectividadLAN: true, dhcpOff: true, firmwareViejo: true };
+  
+  // Filtrar reglas activas
   const activadas = [];
-  if (hechos.clienteEntra) activadas.push(reglas.find((r) => r.id === 1));
-  if (hechos.telefonoSuena) activadas.push(reglas.find((r) => r.id === 2));
-  if (hechos.correoUrgente) activadas.push(reglas.find((r) => r.id === 3));
-  if (hechos.impresoraErrorPapel)
-    activadas.push(reglas.find((r) => r.id === 4));
+  if (hechos.contrasenaDefault) activadas.push(reglas.find((r) => r.id === 1));
+  if (hechos.accesoPanel) activadas.push(reglas.find((r) => r.id === 2));
+  if (hechos.conectividadLAN) activadas.push(reglas.find((r) => r.id === 3));
+  if (hechos.dhcpOff) activadas.push(reglas.find((r) => r.id === 4));
+  
+  // Ordenar por prioridad
+  activadas.sort((a, b) => b.prioridad - a.prioridad);
 
-  activadas.sort((a, b) => {
-    if (a.prioridad !== b.prioridad) return a.prioridad - b.prioridad;
-    return a.id - b.id;
-  });
-
-  res.innerHTML = "Escenario: Oficina de Soporte Técnico\nHechos detectados:\n";
-  res.innerHTML += `- Cliente entra: ${hechos.clienteEntra}\n- Teléfono suena: ${hechos.telefonoSuena}\n- Correo urgente: ${hechos.correoUrgente}\n- Impresora error papel: ${hechos.impresoraErrorPapel}\n\n`;
-  res.innerHTML += "Motor de inferencia evaluando prioridades...\n\n";
-
-  let delay = 700;
+  // --- EJECUCIÓN DINÁMICA (ANIMACIÓN) ---
+  let delay = 500;
+  
   activadas.forEach((regla) => {
     setTimeout(() => {
-      res.innerHTML += `→ [Ejecución] Regla ${regla.id} (prioridad ${regla.prioridad}): ${regla.descripcion}\n`;
-      res.innerHTML += `   Acción ejecutada: ${regla.accion}\n\n`;
+      // Crear elemento visual para cada regla
+      const item = document.createElement("div");
+      item.className = "d-flex align-items-center mb-2 border-bottom pb-2 fade-in";
+      item.innerHTML = `
+        <span class="badge ${getBadgeColor(regla.prioridad)} me-2">P${regla.prioridad}</span>
+        <div>
+            <small class="d-block text-muted">Regla ${regla.id}: ${regla.descripcion}</small>
+            <strong class="text-primary"><i class="bi bi-arrow-return-right"></i> Acción: ${regla.accion}</strong>
+        </div>
+      `;
+      logContainer.appendChild(item);
+      logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll hacia abajo
     }, delay);
-    delay += 900;
+    delay += 1000;
   });
 
+  // --- RESOLUCIÓN FINAL ---
   setTimeout(() => {
-    res.innerHTML +=
-      " Resolución del conflicto (orden ejecutado por prioridad):\n";
-    res.innerHTML += "- 1) Atender al cliente (Regla 1, prioridad ALTA)\n";
-    res.innerHTML += "- 2) Contestar la llamada (Regla 2, prioridad MEDIA)\n";
-    res.innerHTML +=
-      "- 3) Revisar el correo urgente (Regla 3, prioridad MEDIA)\n";
-    res.innerHTML += "- 4) Revisar la impresora (Regla 4, prioridad BAJA)\n\n";
-    res.innerHTML +=
-      " Nota: El motor de inferencia resolvió el conflicto aplicando prioridad a las reglas activas.";
-  }, delay + 300);
+    const conclusion = document.createElement("div");
+    conclusion.className = "alert alert-success mt-3 shadow-sm";
+    conclusion.innerHTML = `
+        <h6 class="alert-heading fw-bold"><i class="bi bi-check-all"></i> Resolución de Conflictos Finalizada</h6>
+        <p class="mb-0 small">El sistema ejecutó las acciones ordenadas por prioridad (3 -> 2 -> 1). Se priorizó la seguridad del dispositivo.</p>
+    `;
+    res.appendChild(conclusion);
+  }, delay + 500);
 }
+
+
 
 let intentosLogin = 0;
 let bloqueado = false;

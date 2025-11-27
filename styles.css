@@ -33,6 +33,58 @@ label {
     font-size: 15px;
     margin-bottom: 4px;
 }
+/* === CENTRAR TODA LA VISTA DEL LOGIN === */
+#login-section {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 80vh;   /* ocupa alto vertical */
+    padding: 20px;
+}
+
+/* Centrar la card */
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    text-align: center; /* centra elementos internos */
+}
+
+/* Centrar la imagen del login */
+.login-img {
+    display: block;
+    margin: 0 auto;
+    max-width: 180px;
+    width: 100%;
+}
+
+/* Inputs más centrados visualmente */
+.login-card input {
+    text-align: center;
+}
+
+/* Botones centrados */
+.login-card .btn {
+    width: 100%;
+}
+
+.rule-box {
+    background: #f8f9fa;
+    border-left: 5px solid #0d6efd;
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+#hechos-estaticos li {
+    margin-bottom: 6px;
+}
+
+/* Responsivo */
+@media (max-width: 600px) {
+    #login-section {
+        min-height: 70vh;
+    }
+}
 
 @media (max-width: 768px) {
     .card {
